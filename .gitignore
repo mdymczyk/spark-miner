@@ -1,0 +1,7 @@
+sbt/sbt-launch*.jar
+target/
+.idea/
+.idea_modules/
+.DS_Store
+spark-keywords.ipr
+spark-keywords.iws
