@@ -2,6 +2,8 @@ package com.puroguramingu
 
 import org.scalatest.FunSuite
 
+import scala.collection.mutable.ListBuffer
+
 class RAKETest extends FunSuite {
 
   val stopwords = Set("a", "about", "above", "above", "across", "after", "afterwards", "again",
@@ -47,6 +49,41 @@ class RAKETest extends FunSuite {
     "algorithms for constructing a minimal supporting set of solutions can be used in solving " +
     "all the considered types of systems and systems of mixed types"
 
+  val bookDocKeywords = Array(ListBuffer("Compatibility"),
+    ListBuffer("systems"),
+    ListBuffer("linear", "constraints"),
+    ListBuffer("set"),
+    ListBuffer("natural", "numbers"),
+    ListBuffer("Criteria"),
+    ListBuffer("compatibility"),
+    ListBuffer("linear", "Diophantine", "equations"),
+    ListBuffer("strict", "inequations"),
+    ListBuffer("nonstrict", "inequations"),
+    ListBuffer("considered"),
+    ListBuffer("Upper", "bounds"),
+    ListBuffer("components"),
+    ListBuffer("minimal", "set"),
+    ListBuffer("solutions"),
+    ListBuffer("algorithms"),
+    ListBuffer("construction"),
+    ListBuffer("minimal", "generating", "sets"),
+    ListBuffer("solutions"),
+    ListBuffer("types"),
+    ListBuffer("systems"),
+    ListBuffer("given"),
+    ListBuffer("These", "criteria"),
+    ListBuffer("corresponding", "algorithms"),
+    ListBuffer("constructing"),
+    ListBuffer("minimal", "supporting", "set"),
+    ListBuffer("solutions"),
+    ListBuffer("used"),
+    ListBuffer("solving"),
+    ListBuffer("considered", "types"),
+    ListBuffer("systems"),
+    ListBuffer("systems"),
+    ListBuffer("mixed")
+  )
+
   test("Should properly handle empty strings") {
     val rake = new RAKE(stopwords, Array(' '), Array('.', ',', '\n'))
     val res = rake.toRAKESeq("")
@@ -59,6 +96,7 @@ class RAKETest extends FunSuite {
 
     assert(res.nonEmpty)
     assertResult(33)(res.length)
+    assertResult(bookDocKeywords)(res)
   }
 
 }

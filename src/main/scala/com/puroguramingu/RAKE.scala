@@ -9,6 +9,16 @@ import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable
 
+/**
+  * Rapid Automatic Keyword Extraction algorithm for extracting
+  * keywords from documents as described in "Text Mining: Applications
+  * and Theory" by Michael W. Berry and Jacob Kogan
+  *
+  * @param stopwords Set of words which will not be taken into account
+  * @param wordDelims Array of characters used to break down the documents into tokens
+  * @param phraseDelims Array of characters used to break down the document into phrases
+  * @param uid
+  */
 final class RAKE(val stopwords: Set[String],
                  val wordDelims: Array[Char],
                  val phraseDelims: Array[Char],
@@ -73,7 +83,9 @@ final class RAKE(val stopwords: Set[String],
   override def transformSchema(schema: StructType): StructType = ???
 }
 
-class RAKEModel extends Model[RAKEModel] {
+class RAKEModel(override val uid: String) extends Model[RAKEModel] {
+
+  def this() = this(Identifiable.randomUID("rakeModel"))
 
   override def copy(extra: ParamMap): Nothing = ???
 
@@ -81,5 +93,4 @@ class RAKEModel extends Model[RAKEModel] {
 
   override def transformSchema(schema: StructType): StructType = ???
 
-  override val uid: String = ""
 }
