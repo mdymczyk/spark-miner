@@ -8,14 +8,15 @@ import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable
+import scala.collection.mutable.{Map => MMap}
 
 /**
   * Rapid Automatic Keyword Extraction algorithm for extracting
   * keywords from documents as described in "Text Mining: Applications
   * and Theory" by Michael W. Berry and Jacob Kogan
   *
-  * @param stopwords Set of words which will not be taken into account
-  * @param wordDelims Array of characters used to break down the documents into tokens
+  * @param stopwords    Set of words which will not be taken into account
+  * @param wordDelims   Array of characters used to break down the documents into tokens
   * @param phraseDelims Array of characters used to break down the document into phrases
   * @param uid
   */
@@ -71,6 +72,37 @@ final class RAKE(val stopwords: Set[String],
     if (sequence.nonEmpty) sequences += sequence
 
     sequences
+  }
+
+  /**
+    * Method returning the word co-occurrence matrix of all the words in the corpus,
+    * the frequency of each word (how many times it appeared in the whole corpus)
+    * and the degree of each word (what is the total size of all the phrases in which
+    * a given word occurred).
+    *
+    * @param corpus The corpus to be examined, which consists of a sequence of phrases (sequences
+    *               of [[String]])
+    * @return
+    */
+  def wordStats(corpus: Seq[Seq[String]]):
+  (MMap[String, MMap[String, Long]], MMap[String, Long], MMap[String, Long]) = {
+    val coocMat = MMap[String, MMap[String, Long]]()
+    val deg = MMap[String, Long]()
+    val freq = MMap[String, Long]()
+    // TODO threadsafety?!
+    corpus.foreach { doc =>
+      for (i <- doc.indices) {
+        freq.put(doc(i), freq.getOrElse[Long](doc(i), 0) + 1)
+        deg.put(doc(i), deg.getOrElse[Long](doc(i), 0) + doc.length)
+        for (j <- i until doc.length) {
+          val row: MMap[String, Long] =
+            coocMat.getOrElse(doc(i), MMap[String, Long]())
+          row.put(doc(j), row.getOrElse[Long](doc(j), 0) + 1)
+          // add the other way around relationship, i -> j and j -> i
+        }
+      }
+    }
+    (coocMat, deg, freq)
   }
 
   def fit(dataset: RDD[String]): RAKEModel = {

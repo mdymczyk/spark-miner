@@ -2,6 +2,7 @@ package com.puroguramingu
 
 import org.scalatest.FunSuite
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 class RAKETest extends FunSuite {
@@ -97,6 +98,12 @@ class RAKETest extends FunSuite {
     assert(res.nonEmpty)
     assertResult(33)(res.length)
     assertResult(bookDocKeywords)(res)
+  }
+
+  test("Word statistics") {
+    val rake = new RAKE(stopwords, Array(' ', '\t'), Array('.', ',', '\n'))
+    val (cooc, deg, freq) = rake.wordStats(rake.toRAKESeq(bookDoc))
+
   }
 
 }
