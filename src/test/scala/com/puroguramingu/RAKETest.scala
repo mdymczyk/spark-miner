@@ -2,7 +2,6 @@ package com.puroguramingu
 
 import org.scalatest.FunSuite
 
-import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 class RAKETest extends FunSuite {
@@ -82,7 +81,7 @@ class RAKETest extends FunSuite {
     ListBuffer("considered", "types"),
     ListBuffer("systems"),
     ListBuffer("systems"),
-    ListBuffer("mixed")
+    ListBuffer("mixed", "types")
   )
 
   test("Should properly handle empty strings") {
@@ -103,6 +102,49 @@ class RAKETest extends FunSuite {
   test("Word statistics") {
     val rake = new RAKE(stopwords, Array(' ', '\t'), Array('.', ',', '\n'))
     val (cooc, deg, freq) = rake.wordStats(rake.toRAKESeq(bookDoc))
+
+    val expectedDeg = Map("compatibility" -> 1, "construction" -> 1, "Criteria" -> 1, "used" -> 1,
+      "These" -> 2, "set" -> 6, "strict" -> 2, "numbers" -> 2, "constraints" -> 2,
+      "corresponding" -> 2, "mixed" -> 2, "components" -> 1, "supporting" -> 3, "Compatibility"
+        -> 1, "solving" -> 1, "Upper" -> 2, "sets" -> 3, "considered" -> 3, "bounds" -> 2,
+      "solutions" -> 3, "nonstrict" -> 2, "inequations" -> 4, "criteria" -> 2, "constructing" ->
+        1, "algorithms" -> 3, "Diophantine" -> 3, "types" -> 5, "systems" -> 4, "linear" -> 5,
+      "generating" -> 3, "equations" -> 3, "minimal" -> 8, "natural" -> 2, "given" -> 1)
+
+    val expectedCooc = Map("compatibility" -> Map("compatibility" -> 2), "construction" -> Map
+    ("construction" -> 2), "Criteria" -> Map("Criteria" -> 2), "used" -> Map("used" -> 2),
+      "These" -> Map("These" -> 2, "criteria" -> 1), "set" -> Map("set" -> 6, "supporting" -> 1,
+        "minimal" -> 2), "strict" -> Map("strict" -> 2, "inequations" -> 1), "numbers" -> Map
+      ("numbers" -> 2, "natural" -> 1), "constraints" -> Map("constraints" -> 2, "linear" -> 1),
+      "corresponding" -> Map("corresponding" -> 2, "algorithms" -> 1), "mixed" -> Map("mixed" ->
+        2, "types" -> 1), "components" -> Map("components" -> 2), "supporting" -> Map("set" -> 1,
+        "supporting" -> 2, "minimal" -> 1), "Compatibility" -> Map("Compatibility" -> 2),
+      "solving" -> Map("solving" -> 2), "Upper" -> Map("Upper" -> 2, "bounds" -> 1), "sets" ->
+        Map("sets" -> 2, "generating" -> 1, "minimal" -> 1), "considered" -> Map("considered" ->
+        4, "types" -> 1), "bounds" -> Map("Upper" -> 1, "bounds" -> 2), "solutions" -> Map
+      ("solutions" -> 6), "nonstrict" -> Map("nonstrict" -> 2, "inequations" -> 1), "inequations"
+        -> Map("strict" -> 1, "nonstrict" -> 1, "inequations" -> 4), "criteria" -> Map("These" ->
+        1, "criteria" -> 2), "constructing" -> Map("constructing" -> 2), "algorithms" -> Map
+      ("corresponding" -> 1, "algorithms" -> 4), "Diophantine" -> Map("Diophantine" -> 2,
+        "equations" -> 1, "linear" -> 1), "types" -> Map("mixed" -> 1, "considered" -> 1, "types"
+        -> 6), "systems" -> Map("systems" -> 8), "linear" -> Map("constraints" -> 1,
+        "Diophantine" -> 1, "equations" -> 1, "linear" -> 4), "generating" -> Map("sets" -> 1,
+        "generating" -> 2, "minimal" -> 1), "equations" -> Map("Diophantine" -> 1, "equations" ->
+        2, "linear" -> 1), "minimal" -> Map("set" -> 2, "supporting" -> 1, "sets" -> 1,
+        "generating" -> 1, "minimal" -> 6), "natural" -> Map("numbers" -> 1, "natural" -> 2),
+      "given" -> Map("given" -> 2))
+
+    assertResult(expectedDeg)(deg)
+    assertResult(expectedCooc)(cooc)
+
+    bookDoc.replaceAll("[.,\n]", " ")
+      .split("[ \t]")
+      .filter(word => !stopwords.contains(word) && word.nonEmpty)
+      .groupBy(w => w)
+      .map(t => (t._1, t._2.length))
+      .foreach { t =>
+        assert(freq.get(t._1).get == t._2)
+      }
 
   }
 

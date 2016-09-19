@@ -69,6 +69,8 @@ final class RAKE(val stopwords: Set[String],
       }
     }
 
+    if (currWord.nonEmpty) sequence += currWord.toString()
+
     if (sequence.nonEmpty) sequences += sequence
 
     sequences
@@ -95,10 +97,14 @@ final class RAKE(val stopwords: Set[String],
         freq.put(doc(i), freq.getOrElse[Long](doc(i), 0) + 1)
         deg.put(doc(i), deg.getOrElse[Long](doc(i), 0) + doc.length)
         for (j <- i until doc.length) {
-          val row: MMap[String, Long] =
+          var row: MMap[String, Long] =
             coocMat.getOrElse(doc(i), MMap[String, Long]())
           row.put(doc(j), row.getOrElse[Long](doc(j), 0) + 1)
-          // add the other way around relationship, i -> j and j -> i
+          coocMat.put(doc(i), row)
+
+          row = coocMat.getOrElse(doc(j), MMap[String, Long]())
+          row.put(doc(i), row.getOrElse[Long](doc(i), 0) + 1)
+          coocMat.put(doc(j), row)
         }
       }
     }
