@@ -1,5 +1,6 @@
 package com.puroguramingu
 
+import com.puroguramingu.RAKEStrategy.RAKEStrategy
 import org.apache.spark.ml.{Estimator, Model}
 import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.ml.util.Identifiable
@@ -40,6 +41,28 @@ final class RAKE(val stopwords: Set[String],
   override def copy(extra: ParamMap): Estimator[RAKEModel] = ???
 
   override def transformSchema(schema: StructType): StructType = ???
+
+  def toRankedKeywords(doc: String, strategy: RAKEStrategy): Map[Double, Seq[String]] = {
+    val raked = toRAKESeq(doc)
+    val (cooc, deg, freq) = wordStats(raked)
+    raked.map { phrase =>
+      val score = strategy match {
+        case RAKEStrategy.Deg =>
+          phrase.foldLeft(0.0) { case (acc, token) =>
+            acc + deg.get(token).get
+          }
+        case RAKEStrategy.Freq =>
+          phrase.foldLeft(0.0) { case (acc, token) =>
+            acc + freq.get(token).get
+          }
+        case RAKEStrategy.Ratio =>
+          phrase.foldLeft(0.0) { case (acc, token) =>
+            acc + deg.get(token).get / freq.get(token).get
+          }
+      }
+      (score, phrase)
+    }.toMap
+  }
 
   /**
     * Transforms an input document into a RAKE sequence of keywords,
@@ -114,12 +137,12 @@ final class RAKE(val stopwords: Set[String],
     *
     * Cooccurrence matrix:
     * [
-    *   "ate" -> ["ate" -> 1, "cake" -> 1],
-    *   "cake" -> ["cake" -> 1, "ate" -> 1],
-    *   "pie" -> ["pie" -> 2, "strawberry" -> 1],
-    *   "blueberry" -> ["blueberry" -> 1, "scone" -> 1],
-    *   "scone" -> ["scone" -> 1, "blueberry" -> 1],
-    *   "strawberry" -> ["strawberry" -> 1, "pie" -> 1]
+    * "ate" -> ["ate" -> 1, "cake" -> 1],
+    * "cake" -> ["cake" -> 1, "ate" -> 1],
+    * "pie" -> ["pie" -> 2, "strawberry" -> 1],
+    * "blueberry" -> ["blueberry" -> 1, "scone" -> 1],
+    * "scone" -> ["scone" -> 1, "blueberry" -> 1],
+    * "strawberry" -> ["strawberry" -> 1, "pie" -> 1]
     * ]
     *
     * Frequency:
@@ -169,4 +192,9 @@ class RAKEModel(override val uid: String) extends Model[RAKEModel] {
 
   override def transformSchema(schema: StructType): StructType = ???
 
+}
+
+object RAKEStrategy extends Enumeration {
+  type RAKEStrategy = Value
+  val Deg, Freq, Ratio = Value
 }
