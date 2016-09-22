@@ -148,4 +148,74 @@ class RAKETest extends FunSuite {
 
   }
 
+  test("Should rank keywords by degree") {
+    val rake = new RAKE(stopwords, Array(' ', '\t'), Array('.', ',', '\n'))
+    val rankedKeywords = rake.toRankedKeywords(bookDoc)
+
+    val expectedScores = Map(ListBuffer("used") -> 1.0, ListBuffer("considered") -> 3.0,
+      ListBuffer("nonstrict", "inequations") -> 6.0, ListBuffer("minimal", "generating", "sets")
+        -> 14.0, ListBuffer("linear", "constraints") -> 7.0,
+      ListBuffer("Upper", "bounds") -> 4.0, ListBuffer("constructing") -> 1.0,
+      ListBuffer("compatibility") -> 1.0, ListBuffer("set") -> 6.0,
+      ListBuffer("components") -> 1.0, ListBuffer("algorithms") -> 3.0,
+      ListBuffer("given") -> 1.0, ListBuffer("Criteria") -> 1.0, ListBuffer("solving") -> 1.0,
+      ListBuffer("strict", "inequations") -> 6.0, ListBuffer("natural", "numbers") -> 4.0,
+      ListBuffer("minimal", "supporting", "set") -> 17.0, ListBuffer("mixed", "types") -> 7.0,
+      ListBuffer("linear", "Diophantine", "equations") -> 11.0, ListBuffer("systems") -> 16.0,
+      ListBuffer("corresponding", "algorithms") -> 5.0, ListBuffer("considered", "types") -> 8.0,
+      ListBuffer("minimal", "set") -> 14.0, ListBuffer("Compatibility") -> 1.0,
+      ListBuffer("These", "criteria") -> 4.0, ListBuffer("types") -> 5.0,
+      ListBuffer("solutions") -> 9.0, ListBuffer("construction") -> 1.0)
+
+    assertResult(28)(rankedKeywords.size)
+    assertResult(expectedScores)(rankedKeywords)
+  }
+
+  test("Should rank keywords by frequency") {
+    val rake = new RAKE(stopwords, Array(' ', '\t'), Array('.', ',', '\n'))
+    val rankedKeywords = rake.toRankedKeywords(bookDoc, RAKEStrategy.Freq)
+
+    val expectedScores = Map(ListBuffer("used") -> 1.0, ListBuffer("considered") -> 2.0,
+      ListBuffer("nonstrict", "inequations") -> 3.0,
+      ListBuffer("minimal", "generating", "sets") -> 5.0,
+      ListBuffer("linear", "constraints") -> 3.0,
+      ListBuffer("Upper", "bounds") -> 2.0, ListBuffer("constructing") -> 1.0,
+      ListBuffer("compatibility") -> 1.0, ListBuffer("set") -> 3.0, ListBuffer("components") -> 1.0,
+      ListBuffer("algorithms") -> 2.0, ListBuffer("given") -> 1.0, ListBuffer("Criteria") -> 1.0,
+      ListBuffer("solving") -> 1.0, ListBuffer("strict", "inequations") -> 3.0,
+      ListBuffer("natural", "numbers") -> 2.0, ListBuffer("minimal", "supporting", "set") -> 7.0,
+      ListBuffer("mixed", "types") -> 4.0, ListBuffer("linear", "Diophantine", "equations") -> 4.0,
+      ListBuffer("systems") -> 16.0, ListBuffer("corresponding", "algorithms") -> 3.0,
+      ListBuffer("considered", "types") -> 5.0, ListBuffer("minimal", "set") -> 6.0,
+      ListBuffer("Compatibility") -> 1.0, ListBuffer("These", "criteria") -> 2.0,
+      ListBuffer("types") -> 3.0, ListBuffer("solutions") -> 9.0, ListBuffer("construction") -> 1.0)
+
+    assertResult(28)(rankedKeywords.size)
+    assertResult(expectedScores)(rankedKeywords)
+  }
+
+  test("Should rank keywords by degree/frequency ration") {
+    val rake = new RAKE(stopwords, Array(' ', '\t'), Array('.', ',', '\n'))
+    val rankedKeywords = rake.toRankedKeywords(bookDoc, RAKEStrategy.Ratio)
+
+    val expectedScores = Map(ListBuffer("used") -> 1.0, ListBuffer("considered") -> 1.5,
+      ListBuffer("nonstrict", "inequations") -> 4.0,
+      ListBuffer("minimal", "generating", "sets") -> 8.666666666666666,
+      ListBuffer("linear", "constraints") -> 4.5, ListBuffer("Upper", "bounds") -> 4.0,
+      ListBuffer("constructing") -> 1.0, ListBuffer("compatibility") -> 1.0,
+      ListBuffer("set") -> 2.0, ListBuffer("components") -> 1.0, ListBuffer("algorithms") -> 1.5,
+      ListBuffer("given") -> 1.0, ListBuffer("Criteria") -> 1.0, ListBuffer("solving") -> 1.0,
+      ListBuffer("strict", "inequations") -> 4.0, ListBuffer("natural", "numbers") -> 4.0,
+      ListBuffer("minimal", "supporting", "set") -> 7.666666666666666,
+      ListBuffer("mixed", "types") -> 3.666666666666667,
+      ListBuffer("linear", "Diophantine", "equations") -> 8.5, ListBuffer("systems") -> 4.0,
+      ListBuffer("corresponding", "algorithms") -> 3.5,
+      ListBuffer("considered", "types") -> 3.166666666666667,
+      ListBuffer("minimal", "set") -> 4.666666666666666, ListBuffer("Compatibility") -> 1.0,
+      ListBuffer("These", "criteria") -> 4.0, ListBuffer("types") -> 1.6666666666666667,
+      ListBuffer("solutions") -> 3.0, ListBuffer("construction") -> 1.0)
+
+    assertResult(28)(rankedKeywords.size)
+    assertResult(expectedScores)(rankedKeywords)
+  }
 }

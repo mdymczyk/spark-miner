@@ -42,7 +42,8 @@ final class RAKE(val stopwords: Set[String],
 
   override def transformSchema(schema: StructType): StructType = ???
 
-  def toRankedKeywords(doc: String, strategy: RAKEStrategy): Map[Double, Seq[String]] = {
+  def toRankedKeywords(doc: String,
+                       strategy: RAKEStrategy = RAKEStrategy.Deg): Map[Seq[String], Double] = {
     val raked = toRAKESeq(doc)
     val (cooc, deg, freq) = wordStats(raked)
     raked.map { phrase =>
@@ -57,11 +58,11 @@ final class RAKE(val stopwords: Set[String],
           }
         case RAKEStrategy.Ratio =>
           phrase.foldLeft(0.0) { case (acc, token) =>
-            acc + deg.get(token).get / freq.get(token).get
+            acc + deg.get(token).get.toDouble / freq.get(token).get.toDouble
           }
       }
-      (score, phrase)
-    }.toMap
+      (phrase, score)
+    }.groupBy(_._1).map { case (k, vs) => (k, vs.map(_._2).sum) }
   }
 
   /**
