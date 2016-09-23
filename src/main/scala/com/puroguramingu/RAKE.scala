@@ -1,10 +1,10 @@
 package com.puroguramingu
 
 import com.puroguramingu.RAKEStrategy.RAKEStrategy
-import org.apache.spark.ml.{Estimator, Model}
+import org.apache.spark.annotation.DeveloperApi
+import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.param.ParamMap
-import org.apache.spark.ml.util.Identifiable
-import org.apache.spark.rdd.RDD
+import org.apache.spark.ml.util.{DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.StructType
 
@@ -24,24 +24,29 @@ import scala.collection.mutable.{Map => MMap}
 final class RAKE(val stopwords: Set[String],
                  val wordDelims: Array[Char],
                  val phraseDelims: Array[Char],
-                 override val uid: String) extends Estimator[RAKEModel] {
+                 override val uid: String) extends Transformer with DefaultParamsWritable {
 
   def this(stopwords: Set[String],
            wordDelims: Array[Char] = Array[Char](' ', '\t'),
            phraseDelims: Array[Char] = Array[Char](',', '.')) =
     this(stopwords, wordDelims, phraseDelims, Identifiable.randomUID("rake"))
 
-  override def fit(dataset: Dataset[_]): RAKEModel = ???
+  override def transform(dataset: Dataset[_]): DataFrame = ???
 
-  def fit(dataset: RDD[String]): RAKEModel = {
-    dataset.foreach(toRAKESeq(_))
-    null
-  }
+  override def copy(extra: ParamMap): Transformer = ???
 
-  override def copy(extra: ParamMap): Estimator[RAKEModel] = ???
-
+  @DeveloperApi
   override def transformSchema(schema: StructType): StructType = ???
 
+  /**
+    * Extracts keywords according to the RAKE algorithm and scores them according to
+    * the [[RAKEStrategy]]. The resulting mapping returns unique, lowercased, keywords, contrary to
+    * the [[RAKE.toRAKESeq(doc)]] method, summing up all the scores for a given keyword.
+    *
+    * @param doc      Document to be scored
+    * @param strategy Strategy used for calculating the score
+    * @return A map of keywords and their scores
+    */
   def toScoredKeywords(doc: String,
                        strategy: RAKEStrategy = RAKEStrategy.Deg): Map[Seq[String], Double] = {
     val raked = toRAKESeq(doc).map(_.map(_.toLowerCase))
@@ -183,18 +188,12 @@ final class RAKE(val stopwords: Set[String],
 
 }
 
-class RAKEModel(override val uid: String) extends Model[RAKEModel] {
-
-  def this() = this(Identifiable.randomUID("rakeModel"))
-
-  override def copy(extra: ParamMap): Nothing = ???
-
-  override def transform(dataset: Dataset[_]): DataFrame = ???
-
-  override def transformSchema(schema: StructType): StructType = ???
-
-}
-
+/**
+  * Strategy used to calculate the RAKE score
+  * Deg - degree of the token (cummulative size of all the phrases in which a token appears in)
+  * Freq - frequncy of the token (how often it appears in the corpus)
+  * Ratio - a degree to frequency ratio
+  */
 object RAKEStrategy extends Enumeration {
   type RAKEStrategy = Value
   val Deg, Freq, Ratio = Value
