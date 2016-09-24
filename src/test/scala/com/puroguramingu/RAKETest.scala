@@ -1,5 +1,7 @@
 package com.puroguramingu
 
+import com.puroguramingu.ml.RAKEStrategy
+import org.apache.spark.ml.RAKE
 import org.scalatest.FunSuite
 
 import scala.collection.mutable.ListBuffer

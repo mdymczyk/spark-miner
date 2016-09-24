@@ -1,12 +1,14 @@
-package com.puroguramingu
+package org.apache.spark.ml
 
-import com.puroguramingu.RAKEStrategy.RAKEStrategy
+import com.puroguramingu.ml.RAKEStrategy
+import com.puroguramingu.ml.RAKEStrategy.RAKEStrategy
 import org.apache.spark.annotation.DeveloperApi
-import org.apache.spark.ml.Transformer
+import org.apache.spark.ml.attribute.AttributeGroup
 import org.apache.spark.ml.param.ParamMap
-import org.apache.spark.ml.util.{DefaultParamsWritable, Identifiable}
-import org.apache.spark.sql.{DataFrame, Dataset}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.ml.param.shared.{HasInputCol, HasOutputCol}
+import org.apache.spark.ml.util.{DefaultParamsWritable, Identifiable, SchemaUtils}
+import org.apache.spark.sql._
+import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import scala.collection.mutable
 import scala.collection.mutable.{Map => MMap}
@@ -24,7 +26,10 @@ import scala.collection.mutable.{Map => MMap}
 final class RAKE(val stopwords: Set[String],
                  val wordDelims: Array[Char],
                  val phraseDelims: Array[Char],
-                 override val uid: String) extends Transformer with DefaultParamsWritable {
+                 override val uid: String) extends Transformer
+  with HasInputCol
+  with HasOutputCol
+  with DefaultParamsWritable {
 
   def this(stopwords: Set[String],
            wordDelims: Array[Char] = Array[Char](' ', '\t'),
@@ -36,17 +41,24 @@ final class RAKE(val stopwords: Set[String],
   override def copy(extra: ParamMap): Transformer = ???
 
   @DeveloperApi
-  override def transformSchema(schema: StructType): StructType = ???
+  override def transformSchema(schema: StructType): StructType = {
+    val inputType = schema($(inputCol)).dataType
+    require(inputType.isInstanceOf[ArrayType],
+      s"The input column must be ArrayType, but got $inputType.")
+    val attrGroup = new AttributeGroup($(outputCol), 0)
+    SchemaUtils.appendColumn(schema, attrGroup.toStructField())
+  }
 
   /**
     * Extracts keywords according to the RAKE algorithm and scores them according to
-    * the [[RAKEStrategy]]. The resulting mapping returns unique, lowercased, keywords, contrary to
+    * the [[com.puroguramingu.ml.RAKEStrategy]]. The resulting mapping returns unique, lowercased, keywords, contrary to
     * the [[RAKE.toRAKESeq(doc)]] method, summing up all the scores for a given keyword.
     *
     * @param doc      Document to be scored
     * @param strategy Strategy used for calculating the score
     * @return A map of keywords and their scores
     */
+  // TODO implement adjoining keywords as per chapter 1.2.3 of the book
   def toScoredKeywords(doc: String,
                        strategy: RAKEStrategy = RAKEStrategy.Deg): Map[Seq[String], Double] = {
     val raked = toRAKESeq(doc).map(_.map(_.toLowerCase))
@@ -186,15 +198,4 @@ final class RAKE(val stopwords: Set[String],
     (coocMat, deg, freq)
   }
 
-}
-
-/**
-  * Strategy used to calculate the RAKE score
-  * Deg - degree of the token (cummulative size of all the phrases in which a token appears in)
-  * Freq - frequncy of the token (how often it appears in the corpus)
-  * Ratio - a degree to frequency ratio
-  */
-object RAKEStrategy extends Enumeration {
-  type RAKEStrategy = Value
-  val Deg, Freq, Ratio = Value
 }
