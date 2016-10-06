@@ -1,7 +1,5 @@
-package com.puroguramingu
+package miner.keywords
 
-import com.puroguramingu.ml.RAKEStrategy
-import org.apache.spark.ml.RAKE
 import org.scalatest.FunSuite
 
 import scala.collection.mutable.ListBuffer

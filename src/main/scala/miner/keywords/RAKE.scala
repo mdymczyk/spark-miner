@@ -1,6 +1,5 @@
-package com.puroguramingu.ml
+package miner.keywords
 
-import com.puroguramingu.ml.RAKEStrategy.RAKEStrategy
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.ml.Transformer
 import org.apache.spark.ml.param.{Param, ParamMap, Params}
@@ -50,7 +49,7 @@ final class RAKE(val stopwords: Set[String],
 
   /**
     * Extracts keywords according to the RAKE algorithm and scores them according to
-    * the [[com.puroguramingu.ml.RAKEStrategy]]. The resulting mapping returns unique, lowercased,
+    * the [[RAKEStrategy]]. The resulting mapping returns unique, lowercased,
     * keywords, contrary to the [[RAKE.toRAKESeq(doc)]] method, summing up all the scores for a
     * given keyword.
     *
