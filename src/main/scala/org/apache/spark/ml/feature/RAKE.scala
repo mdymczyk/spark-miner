@@ -1,8 +1,9 @@
-package miner.keywords
+package org.apache.spark.ml.feature
 
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.ml.Transformer
-import org.apache.spark.ml.param.{Param, ParamMap, Params}
+import org.apache.spark.ml.param.shared.{HasInputCol, HasOutputCol}
+import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.ml.util.{DefaultParamsWritable, Identifiable}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{DataFrame, Dataset}
@@ -24,7 +25,8 @@ final class RAKE(val stopwords: Set[String],
                  val wordDelims: Array[Char],
                  val phraseDelims: Array[Char],
                  override val uid: String) extends Transformer
-  with RAKEParams
+  with HasInputCol
+  with HasOutputCol
   with DefaultParamsWritable {
 
   def this(stopwords: Set[String],
@@ -197,13 +199,6 @@ final class RAKE(val stopwords: Set[String],
     (coocMat, deg, freq)
   }
 
-}
-
-trait RAKEParams extends Params {
-  val inputCol = new Param[String](this, "inputCol", "input column")
-  val outputCol = new Param[String](this, "outputCol", "output column")
-
-  def pvals(pm: ParamMap): (String, String) = ($(inputCol), $(outputCol))
 }
 
 /**

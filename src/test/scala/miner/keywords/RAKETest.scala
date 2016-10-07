@@ -1,5 +1,6 @@
 package miner.keywords
 
+import org.apache.spark.ml.feature.{RAKE, RAKEStrategy}
 import org.scalatest.FunSuite
 
 import scala.collection.mutable.ListBuffer
