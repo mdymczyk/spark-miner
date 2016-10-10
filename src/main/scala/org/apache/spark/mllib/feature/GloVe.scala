@@ -13,6 +13,14 @@ class GloVe extends Serializable with Logging {
   private var numIterations = 25
   private var seed = Utils.random.nextLong()
   private var minCount = 5
+  private var window = 5
+
+  def setWindow(window: Int): this.type = {
+    require(window > 0,
+      s"window must be positive but got $window")
+    this.window = window
+    this
+  }
 
   def setAlpha(alpha: Double): this.type = {
     require(alpha > 0,
@@ -54,13 +62,66 @@ class GloVe extends Serializable with Logging {
     this
   }
 
-  private val vHash = mutable.Map.empty[String, Int]
+//  private var vHash: RDD[(String, Long)] = _
 
   // Co-occurrence matrix
   private val cm: Map[(Int, Int), Double] = null
 
   private def cooccurrence(corpus: RDD[_ <: Iterable[String]]): Map[(Int, Int), Double] = {
+    val vocab: RDD[(String, Int)] = corpus
+      .flatMap(x => x)
+      .map(w => (w, 1))
+      .reduceByKey(_ + _)
+      .filter(_._2 > minCount)
+
+    val vHash = vocab
+      .zipWithIndex()
+      .map{ case((word, cnt), idx) => (word, idx)}
+      .collect()
+
+    val vHashBC = corpus.sparkContext.broadcast(vHash)
+
+    vocab.keys.mapPartitions{ it => {
+      val buffer = new CircularQueue[String](limit = window)
+
+      it.foreach{ word =>
+        
+
+      }
+
+      null
+    }}
+
     null
+  }
+
+  class CircularQueue[A](val limit: Int = 5, list: Seq[A] = Seq()) extends Iterator[A]{
+
+    val elements = new mutable.Queue[A] ++= list
+    var pos = 0
+
+    // TODO Not thread safe
+    def next: A = {
+      if (pos >= elements.length) {
+        pos = 0
+      }
+      val value = elements(pos)
+      pos = pos + 1
+      value
+    }
+
+    def hasNext: Boolean = elements.nonEmpty
+
+    // TODO Not thread safe
+    def add(a: A): Unit = {
+      if (elements.size == limit) {
+        elements.dequeue()
+      }
+      elements += a
+    }
+
+    override def toString = elements.toString
+
   }
 
   def fit(input: RDD[Seq[String]]): GloVeModel = {

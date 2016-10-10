@@ -32,6 +32,14 @@ private[feature] trait GloVeBase extends Params
 
   def getAlpha: Double = $(alpha)
 
+  // ================================== MIN COUNT ==================================
+  final val window = new IntParam(this, "window", "the window used for computing the " +
+    "co-occurrence matrix")
+
+  setDefault(window -> 5)
+
+  def getWindow: Double = $(window)
+
   // ===================================== MISC =====================================
   setDefault(stepSize -> 0.05)
 

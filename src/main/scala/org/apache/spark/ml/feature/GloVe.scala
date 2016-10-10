@@ -20,6 +20,8 @@ final class GloVe(override val uid: String)
 
   def setAlpha(value: Double): this.type = set(alpha, value)
 
+  def setWindow(value: Int): this.type = set(window, value)
+
   def setStepSize(value: Double): this.type = set(stepSize, value)
 
   def setMaxIter(value: Int): this.type = set(maxIter, value)
