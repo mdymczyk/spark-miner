@@ -74,18 +74,25 @@ class GloVe extends Serializable with Logging {
       .reduceByKey(_ + _)
       .filter(_._2 > minCount)
 
-    val vHash = vocab
+    val wHash = vocab
       .zipWithIndex()
       .map{ case((word, cnt), idx) => (word, idx)}
-      .collect()
+      .collectAsMap()
 
-    val vHashBC = corpus.sparkContext.broadcast(vHash)
+    val wHashBC = corpus.sparkContext.broadcast(wHash)
 
+    val coocurences = scala.collection.mutable.HashMap.empty[(Long, Long), Double]
     vocab.keys.mapPartitions{ it => {
-      val buffer = new CircularQueue[String](limit = window)
+      val buffer = new CircularQueue[Long](limit = window)
 
       it.foreach{ word =>
-        
+        wHashBC.value.get(word).foreach{ wh =>
+          buffer.filter(_ != wh).foreach { bwh =>
+            val wh1 = Math.min(wh, bwh)
+            val wh2 = Math.max(wh, bwh)
+            coocurences.put((wh1, wh2), coocurences.getOrElse((wh1, wh2), 0))
+          }
+        }
 
       }
 
