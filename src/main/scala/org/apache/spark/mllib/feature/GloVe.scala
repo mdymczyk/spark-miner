@@ -105,9 +105,7 @@ class GloVe extends Serializable with Logging {
     }.reduceByKey(_ + _)
 
     // For better lookup() performance
-    if (cm.partitioner.isEmpty) {
-      cm.partitionBy(new HashPartitioner(cm.getNumPartitions))
-    }
+    cm.partitionBy(new HashPartitioner(cm.getNumPartitions))
 
     if (cache) cm.cache()
 
