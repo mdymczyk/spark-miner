@@ -1,5 +1,6 @@
 package org.apache.spark.mllib.feature
 
+import org.apache.spark.HashPartitioner
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.Utils
@@ -62,62 +63,72 @@ class GloVe extends Serializable with Logging {
     this
   }
 
-//  private var vHash: RDD[(String, Long)] = _
+  def fit(input: RDD[Seq[String]]): GloVeModel = {
+    null
+  }
 
-  // Co-occurrence matrix
-  private val cm: Map[(Int, Int), Double] = null
-
-  private def cooccurrence(corpus: RDD[_ <: Iterable[String]]): Map[(Int, Int), Double] = {
-    val vocab: RDD[(String, Int)] = corpus
+  private[feature] def cooccurrence(corpus: RDD[_ <: Iterable[String]],
+                                    cache: Boolean = true): RDD[((Long, Long), Double)] = {
+    val wHash = corpus
       .flatMap(x => x)
       .map(w => (w, 1))
       .reduceByKey(_ + _)
-      .filter(_._2 > minCount)
-
-    val wHash = vocab
+      .filter(_._2 >= minCount)
+      .keys
       .zipWithIndex()
-      .map{ case((word, cnt), idx) => (word, idx)}
       .collectAsMap()
 
     val wHashBC = corpus.sparkContext.broadcast(wHash)
 
-    val coocurences = scala.collection.mutable.HashMap.empty[(Long, Long), Double]
-    vocab.keys.mapPartitions{ it => {
+    val cm = corpus.mapPartitions { it => {
+      val coocurences = scala.collection.mutable.HashMap.empty[(Long, Long), Double]
       val buffer = new CircularQueue[Long](limit = window)
 
-      it.foreach{ word =>
-        wHashBC.value.get(word).foreach{ wh =>
-          buffer.filter(_ != wh).foreach { bwh =>
-            val wh1 = Math.min(wh, bwh)
-            val wh2 = Math.max(wh, bwh)
-            coocurences.put((wh1, wh2), coocurences.getOrElse((wh1, wh2), 0))
+      it.foreach { words =>
+        words.foreach { word =>
+          wHashBC.value.get(word).foreach { wh =>
+            buffer.foreach { bwh =>
+              if (bwh != wh) {
+                val wh1 = Math.min(wh, bwh)
+                val wh2 = Math.max(wh, bwh)
+                // TODO apply here different strategies for weights
+                coocurences.put((wh1, wh2), coocurences.getOrElse[Double]((wh1, wh2), 0) + 1)
+              }
+            }
+            buffer.add(wh)
+            buffer.reset()
           }
         }
-
       }
+      coocurences.iterator
+    }
+    }.reduceByKey(_ + _)
 
-      null
-    }}
+    // For better lookup() performance
+    if (cm.partitioner.isEmpty) {
+      cm.partitionBy(new HashPartitioner(cm.getNumPartitions))
+    }
 
-    null
+    if (cache) cm.cache()
+
+    cm
   }
 
-  class CircularQueue[A](val limit: Int = 5, list: Seq[A] = Seq()) extends Iterator[A]{
+  class CircularQueue[A](val limit: Int = 5, list: Seq[A] = Seq()) extends Iterator[A] {
 
     val elements = new mutable.Queue[A] ++= list
     var pos = 0
 
     // TODO Not thread safe
     def next: A = {
-      if (pos >= elements.length) {
-        pos = 0
-      }
       val value = elements(pos)
       pos = pos + 1
       value
     }
 
-    def hasNext: Boolean = elements.nonEmpty
+    def reset(): Unit = pos = 0
+
+    def hasNext: Boolean = pos < elements.size
 
     // TODO Not thread safe
     def add(a: A): Unit = {
@@ -127,11 +138,8 @@ class GloVe extends Serializable with Logging {
       elements += a
     }
 
-    override def toString = elements.toString
+    override def toString: String = elements.toString
 
   }
 
-  def fit(input: RDD[Seq[String]]): GloVeModel = {
-    null
-  }
 }

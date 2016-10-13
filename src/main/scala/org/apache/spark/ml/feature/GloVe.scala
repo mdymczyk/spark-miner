@@ -47,5 +47,5 @@ final class GloVe(override val uid: String)
     validateAndTransformSchema(schema)
   }
 
-  override def copy(extra: ParamMap): Word2Vec = defaultCopy(extra)
+  override def copy(extra: ParamMap): GloVe = defaultCopy(extra)
 }

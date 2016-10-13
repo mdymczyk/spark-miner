@@ -2,6 +2,7 @@ package org.apache.spark.ml.feature
 
 import org.apache.spark.annotation.DeveloperApi
 import org.apache.spark.ml.Transformer
+import org.apache.spark.ml.feature.RAKEStrategy.RAKEStrategy
 import org.apache.spark.ml.param.shared.{HasInputCol, HasOutputCol}
 import org.apache.spark.ml.param.ParamMap
 import org.apache.spark.ml.util.{DefaultParamsWritable, Identifiable}

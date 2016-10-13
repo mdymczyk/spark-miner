@@ -3,11 +3,12 @@ package org.apache.spark.ml.feature
 import org.apache.spark.ml.Model
 import org.apache.spark.ml.linalg.Vector
 import org.apache.spark.ml.param.ParamMap
+import org.apache.spark.mllib.feature
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.sql.types.StructType
 
 class GloVeModel private[ml](override val uid: String,
-                             @transient private val wordVectors: GloVeModel)
+                             @transient private val wordVectors: feature.GloVeModel)
   extends Model[GloVeModel] with GloVeBase {
   // TODO with MLWritable {
 
