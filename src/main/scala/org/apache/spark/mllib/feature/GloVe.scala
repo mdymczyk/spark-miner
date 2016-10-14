@@ -5,7 +5,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.Utils
 
-import scala.collection.mutable
+import scala.collection.{Map, mutable}
 
 class GloVe extends Serializable with Logging {
   private var dim = 50
@@ -63,12 +63,25 @@ class GloVe extends Serializable with Logging {
     this
   }
 
+  /**
+    ******************************************* TRAINING *******************************************
+    */
+
   def fit(input: RDD[Seq[String]]): GloVeModel = {
+    val cm = cooccurrenceMatrix(input)
+
+    val WUpdates1 = Array[Double](dim)
+    val WUpdates2 = Array[Double](dim)
+
+    input.foreach{ it =>
+
+    }
+
     null
   }
 
-  private[feature] def cooccurrence(corpus: RDD[_ <: Iterable[String]],
-                                    cache: Boolean = true): RDD[((Long, Long), Double)] = {
+  private[feature] def cooccurrenceMatrix(corpus: RDD[_ <: Iterable[String]])
+                                                                    : Map[(Long, Long), Double] = {
     val wHash = corpus
       .flatMap(x => x)
       .map(w => (w, 1))
@@ -80,7 +93,7 @@ class GloVe extends Serializable with Logging {
 
     val wHashBC = corpus.sparkContext.broadcast(wHash)
 
-    val cm = corpus.mapPartitions { it => {
+    val cm: Map[(Long, Long), Double] = corpus.mapPartitions { it => {
       val coocurences = scala.collection.mutable.HashMap.empty[(Long, Long), Double]
       val buffer = new CircularQueue[Long](limit = window)
 
@@ -101,14 +114,7 @@ class GloVe extends Serializable with Logging {
         }
       }
       coocurences.iterator
-    }
-    }.reduceByKey(_ + _)
-
-    // For better lookup() performance
-    cm.partitionBy(new HashPartitioner(cm.getNumPartitions))
-
-    if (cache) cm.cache()
-
+    }}.reduceByKey(_ + _).collectAsMap()
     cm
   }
 

@@ -17,9 +17,7 @@ class GloVeTest extends FunSuite {
 
     val glove = new GloVe()
     glove.setMinCount(1)
-    val cm = glove.cooccurrence(input.map(_.split("\\s")))
-
-    assert(cm.partitioner.nonEmpty)
+    val cm = glove.cooccurrenceMatrix(input.map(_.split("\\s")))
 
     assertResult(
       Set(
@@ -32,7 +30,7 @@ class GloVeTest extends FunSuite {
         ((2, 4), 1.0),
         ((3, 5), 1.0)
       )
-    )(cm.collect().toSet)
+    )(cm.toSet)
 
   }
 
