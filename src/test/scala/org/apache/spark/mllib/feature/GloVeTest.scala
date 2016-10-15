@@ -30,7 +30,7 @@ class GloVeTest extends FunSuite {
         ((2, 4), 1.0),
         ((3, 5), 1.0)
       )
-    )(cm.toSet)
+    )(cm.collect().toSet)
 
   }
 

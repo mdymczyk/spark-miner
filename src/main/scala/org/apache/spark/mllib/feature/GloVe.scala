@@ -1,7 +1,10 @@
 package org.apache.spark.mllib.feature
 
-import org.apache.spark.HashPartitioner
+import breeze.linalg.Matrix
+import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
+import org.apache.spark.ml.linalg.SparseMatrix
+import org.apache.spark.mllib.linalg.Matrices
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.Utils
 
@@ -64,24 +67,43 @@ class GloVe extends Serializable with Logging {
   }
 
   /**
-    ******************************************* TRAINING *******************************************
+    * TRAINING
     */
-
+  import breeze.linalg._
   def fit(input: RDD[Seq[String]]): GloVeModel = {
-    val cm = cooccurrenceMatrix(input)
+    // TODO memory killer!!!
+    val (cm, wHashBC) = cooccurrenceMatrix(input)
 
-    val WUpdates1 = Array[Double](dim)
-    val WUpdates2 = Array[Double](dim)
+    cm.mapPartitions { entries =>
+      val WUpdates1 = Array[Double](dim)
+      val WUpdates2 = Array[Double](dim)
 
-    input.foreach{ it =>
+      // TODO make this a sparse matrix
+      val W: Matrix[Double] = DenseMatrix.zeros[Double]()
 
+      // TODO threadsafety?
+      // TODO change this to a reduce function
+      entries.foreach{ case ((w1, w2), cooc) =>
+        var vec = W(w1.toInt, ::)
+        var diff = W(w1, ::)*W(w2, ::)
+      }
+
+      null
     }
 
     null
   }
 
+  /**
+    * Calculates the co-occurrence matrix from a given corpus using a sliding, symmetrical window.
+    *
+    * @param corpus Corpus used to calculate co-occurrences. Each Iterable is considered as a
+    *               single sentence.
+    * @return
+    */
+  // TODO should the model also save the word -> index mapping?
   private[feature] def cooccurrenceMatrix(corpus: RDD[_ <: Iterable[String]])
-                                                                    : Map[(Long, Long), Double] = {
+  : (RDD[((Long, Long), Double)], Broadcast[Map[String, Long]]) = {
     val wHash = corpus
       .flatMap(x => x)
       .map(w => (w, 1))
@@ -93,7 +115,7 @@ class GloVe extends Serializable with Logging {
 
     val wHashBC = corpus.sparkContext.broadcast(wHash)
 
-    val cm: Map[(Long, Long), Double] = corpus.mapPartitions { it => {
+    (corpus.mapPartitions { it => {
       val coocurences = scala.collection.mutable.HashMap.empty[(Long, Long), Double]
       val buffer = new CircularQueue[Long](limit = window)
 
@@ -114,8 +136,8 @@ class GloVe extends Serializable with Logging {
         }
       }
       coocurences.iterator
-    }}.reduceByKey(_ + _).collectAsMap()
-    cm
+    }
+    }.reduceByKey(_ + _), wHashBC)
   }
 
   class CircularQueue[A](val limit: Int = 5, list: Seq[A] = Seq()) extends Iterator[A] {
