@@ -1,22 +1,28 @@
 package org.apache.spark.mllib.feature
 
-import breeze.linalg.Matrix
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
-import org.apache.spark.ml.linalg.SparseMatrix
-import org.apache.spark.mllib.linalg.Matrices
 import org.apache.spark.rdd.RDD
 import org.apache.spark.util.Utils
+import org.apache.spark.util.random.XORShiftRandom
 
 import scala.collection.{Map, mutable}
 
+import com.github.fommil.netlib.BLAS.{getInstance => blas}
+
 class GloVe extends Serializable with Logging {
+
+  // The dimension of resulting word vectors
   private var dim = 50
+  // Gradient descent step size
   private var learningRate = 0.05
   private var alpha = 0.75
+  // Maximum number of iterations
   private var numIterations = 25
   private var seed = Utils.random.nextLong()
+  // The minimum number of times a word has to occur in the corpus to be taken into account
   private var minCount = 5
+  // The sliding window size used to compute cooccurrences
   private var window = 5
 
   def setWindow(window: Int): this.type = {
@@ -69,29 +75,70 @@ class GloVe extends Serializable with Logging {
   /**
     * TRAINING
     */
-  import breeze.linalg._
   def fit(input: RDD[Seq[String]]): GloVeModel = {
-    // TODO memory killer!!!
     val (cm, wHashBC) = cooccurrenceMatrix(input)
 
-    cm.mapPartitions { entries =>
-      val WUpdates1 = Array[Double](dim)
-      val WUpdates2 = Array[Double](dim)
+    val initRandom = new XORShiftRandom(seed)
 
-      // TODO make this a sparse matrix
-      val W: Matrix[Double] = DenseMatrix.zeros[Double]()
+    val sc = input.sparkContext
+    val vocabSize: Int = wHashBC.value.size
 
-      // TODO threadsafety?
-      // TODO change this to a reduce function
-      entries.foreach{ case ((w1, w2), cooc) =>
-        var vec = W(w1.toInt, ::)
-        var diff = W(w1, ::)*W(w2, ::)
+    val W = Array.fill[Float](vocabSize * dim)((initRandom.nextFloat() - 0.5f) / dim)
+    val diff = new Array[Float](vocabSize * dim)
+    for (k <- 1 to numIterations) {
+      val bcW = sc.broadcast(W)
+      val bcDiff = sc.broadcast(diff)
+
+      val partial = cm.mapPartitionsWithIndex { case (idx, entries) =>
+        val random = new XORShiftRandom(seed ^ ((idx + 1) << 16) ^ ((-k - 1) << 8))
+
+        val WUpdates = Array[Int](dim)
+        val diffUpdates = Array[Int](dim)
+
+        val model = entries.foldLeft((bcW.value, bcDiff.value)) {
+          // TODO implement
+          case ((foldW, folddiff), entry) => (foldW, folddiff)
+        }
+        val WLocal = model._1
+        val diffLocal = model._2
+        // Only output modified vectors.
+        Iterator.tabulate(vocabSize) { index =>
+          if (WUpdates(index) > 0) {
+            Some((index, WLocal.slice(index * dim, (index + 1) * dim)))
+          } else {
+            None
+          }
+        }.flatten ++ Iterator.tabulate(vocabSize) { index =>
+          if (diffUpdates(index) > 0) {
+            Some((index + vocabSize, diffLocal.slice(index * dim, (index + 1) * dim)))
+
+          } else {
+            None
+          }
+        }.flatten
+      }
+      val synAgg = partial.reduceByKey { case (v1, v2) =>
+        blas.saxpy(dim, 1.0f, v2, 1, v1, 1)
+        v1
+      }.collect()
+      var i = 0
+      while (i < synAgg.length) {
+        val index = synAgg(i)._1
+        if (index < vocabSize) {
+          Array.copy(synAgg(i)._2, 0, W, index * dim, dim)
+        } else {
+          Array.copy(synAgg(i)._2, 0, diff, (index - vocabSize) * dim, dim)
+        }
+        i += 1
       }
 
-      null
+      bcW.unpersist(false)
+      bcDiff.unpersist(false)
     }
 
-    null
+    val words = wHashBC.value.toMap
+    wHashBC.unpersist()
+    new GloVeModel(words, W)
   }
 
   /**
@@ -113,7 +160,7 @@ class GloVe extends Serializable with Logging {
       .zipWithIndex()
       .collectAsMap()
 
-    val wHashBC = corpus.sparkContext.broadcast(wHash)
+    val wHashBC: Broadcast[Map[String, Long]] = corpus.sparkContext.broadcast(wHash)
 
     (corpus.mapPartitions { it => {
       val coocurences = scala.collection.mutable.HashMap.empty[(Long, Long), Double]

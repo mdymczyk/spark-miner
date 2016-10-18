@@ -2,7 +2,7 @@ package org.apache.spark.mllib.feature
 
 import org.apache.spark.mllib.linalg.Vector
 
-class GloVeModel private[spark] (private[spark] val wordIndex: Map[String, Int],
+class GloVeModel private[spark] (private[spark] val wordIndex: Map[String, Long],
                                  private[spark] val wordVectors: Array[Float])
   extends Serializable {
   // TODO with Saveable {
