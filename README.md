@@ -18,3 +18,5 @@ Supported algorithms (implemented or on the roadmap):
 Supported algorithms (implemented or on the roadmap):
 
 1) GloVe as descibed in [Jeffrey Pennington, Richard Socher, and Christopher D. Manning. 2014. GloVe: Global Vectors for Word Representation.](http://nlp.stanford.edu/pubs/glove.pdf)
+
+2) Doc2Vec as described in [Quoc Le, Tomas Mikolov. 2014. Distributed Representations of Sentences and Documents](https://arxiv.org/pdf/1405.4053v2.pdf)
